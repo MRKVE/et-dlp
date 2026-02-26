@@ -7,4 +7,3 @@ FFmpeg must be included in the root folder inside bin.<br>
 <img width="263" height="67" alt="image" src="https://github.com/user-attachments/assets/9512096e-f083-44d7-a966-fe1153742340" />
 <br>
 The Windows build has FFmpeg included. 
-
