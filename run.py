@@ -40,9 +40,9 @@ def alusta():
     elif mp4_nupp.config('relief')[-1] == 'sunken':
         print("mp4")
         ydl_seaded['format'] = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
-    elif webm_nupp.config('relief')[-1] == 'sunken':
-        print("webm")
-        ydl_seaded['format'] = 'bestvideo[ext=webm]+bestaudio[ext=m4a]/best[ext=webm]/best'
+    elif mkv_nupp.config('relief')[-1] == 'sunken':
+        print("mkv")
+        ydl_seaded.update({'format': 'bestvideo+bestaudio/best', 'merge_output_format': 'mkv'})
         
     try:
         with yt_dlp.YoutubeDL(ydl_seaded) as ydl:
@@ -58,7 +58,7 @@ def toggle_mp3():
     if mp3_nupp.config('relief')[-1] == 'sunken':
         mp3_nupp.config(relief="raised")
     else:
-        webm_nupp.config(relief="raised")
+        mkv_nupp.config(relief="raised")
         mp4_nupp.config(relief="raised")
         mp3_nupp.config(relief="sunken")
         
@@ -70,15 +70,15 @@ def toggle_mp4():
     if mp4_nupp.config('relief')[-1] == 'sunken':
         mp4_nupp.config(relief="raised")
     else:
-        webm_nupp.config(relief="raised")
+        mkv_nupp.config(relief="raised")
         mp4_nupp.config(relief="sunken")
         mp3_nupp.config(relief="raised")
         
-def toggle_webm():
-    if webm_nupp.config('relief')[-1] == 'sunken':
-        webm_nupp.config(relief="raised")
+def toggle_mkv():
+    if mkv_nupp.config('relief')[-1] == 'sunken':
+        mkv_nupp.config(relief="raised")
     else:
-        webm_nupp.config(relief="sunken")
+        mkv_nupp.config(relief="sunken")
         mp4_nupp.config(relief="raised")
         mp3_nupp.config(relief="raised")
         
@@ -125,8 +125,8 @@ mp3_nupp.place(relx=0.3, rely=0.7, anchor="center")
 mp4_nupp = tk.Button(raam, text='mp4', command=toggle_mp4, relief="raised")
 mp4_nupp.place(relx=0.5, rely=0.7, anchor="center")
 
-webm_nupp = tk.Button(raam, text='webm', command=toggle_webm, relief="raised")
-webm_nupp.place(relx=0.7, rely=0.7, anchor="center")
+mkv_nupp = tk.Button(raam, text='mkv', command=toggle_mkv, relief="raised")
+mkv_nupp.place(relx=0.7, rely=0.7, anchor="center")
 
 sule_nupp = tk.Button(raam, text='Sulge', command=Sule)
 sule_nupp.place(relx=0.3, rely=0.9, anchor="center")
