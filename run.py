@@ -29,11 +29,9 @@ def alusta():
     if not os.path.exists(base_out_path):
         os.makedirs(base_out_path)
         
-    '''if cookie_nupp.config('relief')[-1] == 'sunken':
-        ydl_seaded.update({
-        'cookiesfrombrowser': ('firefox',),
-        'geo_bypass': True,
-    })'''
+    if playlist_nupp.config('relief')[-1] == 'sunken':
+        ydl_seaded.update({'noplaylist': False})
+        
     
     if mp3_nupp.config('relief')[-1] == 'sunken':
         print("mp3")
@@ -117,11 +115,11 @@ def copy():
     raam.clipboard_clear()
     raam.clipboard_append(inp)
     
-'''def cookies():
-    if cookie_nupp.config('relief')[-1] == 'sunken':
-        cookie_nupp.config(relief="raised")
+def playlist():
+    if playlist_nupp.config('relief')[-1] == 'sunken':
+        playlist_nupp.config(relief="raised")
     else:
-        cookie_nupp.config(relief="sunken")'''
+        playlist_nupp.config(relief="sunken")
 
 raam = tk.Tk()
 
@@ -151,8 +149,8 @@ mp3_nupp.place(relx=0.3, rely=0.7, anchor="center")
 mp4_nupp = tk.Button(raam, text='mp4', command=toggle_mp4, relief="raised")
 mp4_nupp.place(relx=0.5, rely=0.7, anchor="center")
 
-'''cookie_nupp = tk.Button(raam, text='Firefox küpsised', command=cookies, relief="raised")
-cookie_nupp.place(relx=0.5, rely=0.5, anchor="center")'''
+playlist_nupp = tk.Button(raam, text='Playlist', command=playlist, relief="raised")
+playlist_nupp.place(relx=0.5, rely=0.5, anchor="center")
 
 mkv_nupp = tk.Button(raam, text='mkv', command=toggle_mkv, relief="raised")
 mkv_nupp.place(relx=0.7, rely=0.7, anchor="center")
