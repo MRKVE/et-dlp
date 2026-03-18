@@ -28,31 +28,47 @@ def alusta():
     
     if not os.path.exists(base_out_path):
         os.makedirs(base_out_path)
+        
+    '''if cookie_nupp.config('relief')[-1] == 'sunken':
+        ydl_seaded.update({
+        'cookiesfrombrowser': ('firefox',),
+        'geo_bypass': True,
+    })'''
     
     if mp3_nupp.config('relief')[-1] == 'sunken':
         print("mp3")
         ydl_seaded.update({
-            'format': 'bestaudio/best',
-            'postprocessors': [{
+        'format': 'bestaudio/best',
+        'postprocessors': [
+            {
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
-                'preferredquality': '192',}],})
+                'preferredquality': '192',
+            },
+            {
+                'key': 'EmbedThumbnail',
+            }
+        ],
+        'writethumbnail': True,
+    })
     elif mp4_nupp.config('relief')[-1] == 'sunken':
         print("mp4")
-        ydl_seaded['format'] = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
+        ydl_seaded.update({'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best', 'writethumbnail': True, 'postprocessors': [{'key': 'EmbedThumbnail'}]})
     elif mkv_nupp.config('relief')[-1] == 'sunken':
         print("mkv")
-        ydl_seaded.update({'format': 'bestvideo+bestaudio/best', 'merge_output_format': 'mkv'})
+        ydl_seaded.update({'format': 'bestvideo+bestaudio/best', 'merge_output_format': 'mkv', 'writethumbnail': True, 'postprocessors': [{'key': 'EmbedThumbnail'}]})
         
     try:
         with yt_dlp.YoutubeDL(ydl_seaded) as ydl:
             ydl.download([link])
         väljund_kast.config(text = "Allalaadimine õnnestus!")
         print("Allalaadimine õnnestus!")
+        
     except Exception as e:
-
-        väljund_kast.config(text = "Viga..")
-        print(f"Viga: {e}")
+        with open("error_log.txt", "w", encoding="utf-8") as f:
+            f.write(str(e))
+        väljund_kast.config(text="Viga! Vaata error_log.txt")
+    
     
 def toggle_mp3():
     if mp3_nupp.config('relief')[-1] == 'sunken':
@@ -96,6 +112,12 @@ def copy():
     inp = sisend_kast.get()
     raam.clipboard_clear()
     raam.clipboard_append(inp)
+    
+'''def cookies():
+    if cookie_nupp.config('relief')[-1] == 'sunken':
+        cookie_nupp.config(relief="raised")
+    else:
+        cookie_nupp.config(relief="sunken")'''
 
 raam = tk.Tk()
 
@@ -124,6 +146,9 @@ mp3_nupp.place(relx=0.3, rely=0.7, anchor="center")
 
 mp4_nupp = tk.Button(raam, text='mp4', command=toggle_mp4, relief="raised")
 mp4_nupp.place(relx=0.5, rely=0.7, anchor="center")
+
+'''cookie_nupp = tk.Button(raam, text='Firefox küpsised', command=cookies, relief="raised")
+cookie_nupp.place(relx=0.5, rely=0.5, anchor="center")'''
 
 mkv_nupp = tk.Button(raam, text='mkv', command=toggle_mkv, relief="raised")
 mkv_nupp.place(relx=0.7, rely=0.7, anchor="center")
