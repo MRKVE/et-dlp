@@ -46,6 +46,10 @@ def alusta():
                 'preferredquality': '192',
             },
             {
+                'key': 'FFmpegMetadata',
+                'add_metadata': True,
+            },
+            {
                 'key': 'EmbedThumbnail',
             }
         ],
