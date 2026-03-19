@@ -24,13 +24,17 @@ def alusta():
     ffmpeg_dir = get_path(os.path.join("bin", "ffmpeg", "bin"))
     base_out_path = os.path.join(os.getcwd(), "OUT")
     out_path = os.path.join(base_out_path, "%(title)s.%(ext)s")
-    ydl_seaded= {'outtmpl': out_path,'ffmpeg_location': ffmpeg_dir, 'noplaylist': True, 'quiet': False,}
+    ydl_seaded= {'outtmpl': out_path,'ffmpeg_location': ffmpeg_dir, 'noplaylist': True, 'quiet': False, }
     
     if not os.path.exists(base_out_path):
         os.makedirs(base_out_path)
         
     if playlist_nupp.config('relief')[-1] == 'sunken':
         ydl_seaded.update({'noplaylist': False})
+        
+    if logi_nupp.config('relief')[-1] == 'sunken':
+        archive_file = os.path.join(os.getcwd(), 'laetud.txt')
+        ydl_seaded.update({ 'download_archive': archive_file})
         
     
     if mp3_nupp.config('relief')[-1] == 'sunken':
@@ -120,6 +124,12 @@ def playlist():
         playlist_nupp.config(relief="raised")
     else:
         playlist_nupp.config(relief="sunken")
+        
+def logimine():
+    if logi_nupp.config('relief')[-1] == 'sunken':
+        logi_nupp.config(relief="raised")
+    else:
+        logi_nupp.config(relief="sunken")        
 
 raam = tk.Tk()
 
@@ -150,7 +160,10 @@ mp4_nupp = tk.Button(raam, text='mp4', command=toggle_mp4, relief="raised")
 mp4_nupp.place(relx=0.5, rely=0.7, anchor="center")
 
 playlist_nupp = tk.Button(raam, text='Playlist', command=playlist, relief="raised")
-playlist_nupp.place(relx=0.5, rely=0.5, anchor="center")
+playlist_nupp.place(relx=0.3, rely=0.5, anchor="center")
+
+logi_nupp = tk.Button(raam, text='Logija', command=logimine, relief="sunken")
+logi_nupp.place(relx=0.7, rely=0.5, anchor="center")
 
 mkv_nupp = tk.Button(raam, text='mkv', command=toggle_mkv, relief="raised")
 mkv_nupp.place(relx=0.7, rely=0.7, anchor="center")
