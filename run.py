@@ -1,18 +1,20 @@
 import tkinter as tk
 from tkinter import filedialog, Menu
 import customtkinter as ctk
-import os, yt_dlp, winsound, threading, sys
+import os, yt_dlp, winsound, threading, sys, json, shutil
 from CTkMenuBar import CTkMenuBar, CustomDropdownMenu
 
-
+deno_path = shutil.which("deno")
+if deno_path:
+    os.environ['PATH'] = os.path.dirname(deno_path) + os.pathsep + os.environ.get('PATH', '')
 
 logi_aktiivne = True
 playlist_aktiivne = False
 madalam_aktiivne = False
-valik = "mp4"
 
-VERSIOON = "3.0.0"
-YT_DLP_VER = "2026.03.17"
+VERSIOON = "3.0.1"
+YT_DLP_VER = "2026.3.17.0"
+valik = "mp4"
 
 väljund_kaust = None
 logi_aken = None
@@ -52,6 +54,11 @@ def alusta_töö():
     out_path = os.path.join(base_out_path, "%(title)s.%(ext)s")
     ydl_seaded= {'outtmpl': out_path,'ffmpeg_location': ffmpeg_dir, 'noplaylist': True, 'quiet': False, }
     ydl_seaded.update({'remote_components': ['ejs:github']})
+    
+    '''deno_path = get_path(os.path.join("bin", "deno.exe"))
+    if os.path.exists(deno_path):
+        ydl_seaded.update({'javascript_executor': deno_path})'''
+
     
     if not os.path.exists(base_out_path):
         os.makedirs(base_out_path)
@@ -128,6 +135,7 @@ def alusta_töö():
     
     try:
         with yt_dlp.YoutubeDL(ydl_seaded) as ydl:
+            '''ydl.cache.remove()'''
             ydl.download([link])
         raam.after(0, lõpeta, "Allalaadimine õnnestus!")
     except Exception as e:
@@ -190,6 +198,9 @@ def vali_kaust():
     kaust = filedialog.askdirectory()
     if kaust:
         väljund_kaust = kaust
+        salvesta_seaded()
+        kausta_nimi = os.path.basename(kaust)
+        väljund_kast.configure(text=f"Salvestan kausta: {kausta_nimi}", text_color="yellow")
         
 
 def näita_versiooni():
@@ -198,6 +209,30 @@ def näita_versiooni():
     aken.geometry("250x100")
     aken.resizable(False, False)
     ctk.CTkLabel(aken, text=f"ET-DLP v{VERSIOON} \n yt-dlp v{YT_DLP_VER}").pack(expand=True)
+
+def salvesta_seaded():
+    seaded = {
+        "valjund_kaust": väljund_kaust
+    }
+    with open("seadistused.json", "w") as f:
+        json.dump(seaded, f)
+
+def laadi_seaded():
+    global väljund_kaust, valik
+    if os.path.exists("seadistused.json"):
+        try:
+            with open("seadistused.json", "r") as f:
+                seaded = json.load(f)
+                väljund_kaust = seaded.get("valjund_kaust")
+        except Exception:
+            pass
+        
+def kasuta_vaikekausta():
+    global väljund_kaust
+    väljund_kaust = None
+    salvesta_seaded()
+    väljund_kast.configure(text="Kasutan vaikekausta (OUT)", text_color="yellow")
+
 
 raam = ctk.CTk()
 
@@ -221,6 +256,7 @@ abi_menüü = menüüriba.add_cascade("Abi")
 
 valikud_fail = CustomDropdownMenu(widget=faili_menüü, corner_radius=0, border_width=2)
 valikud_fail.add_option(option="Vali väljundkaust", command=vali_kaust)
+valikud_fail.add_option(option="Kasuta vaikekausta (OUT)", command=kasuta_vaikekausta)
 valikud_fail.add_separator()
 valikud_fail.add_option(option="Välju", command=Sule)
 
@@ -246,9 +282,10 @@ logi_nupp = ctk.CTkButton(sisu_raam, text='Logija', command=logimine)
 logi_nupp.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
 logi_nupp.configure(fg_color="green")
 
+laadi_seaded()
 
 formaat_valik = ctk.CTkSegmentedButton(sisu_raam, values=["mp3", "mp4", "mkv"], command=vali_formaat)
-formaat_valik.set("mp4")
+formaat_valik.set(valik)
 formaat_valik.grid(row=3, column=0, columnspan=2, padx=5, pady=5)
 
 sule_nupp = ctk.CTkButton(sisu_raam, text='Sulge', command=Sule)
@@ -263,9 +300,13 @@ alusta_nupp.grid(row=5, column=1, padx=5, pady=10, sticky="ew")
 progress = ctk.CTkProgressBar(sisu_raam, mode="indeterminate")
 progress.grid(row=6, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
 
-'''sisu_raam.rowconfigure(7, weight=1)'''
-
-
 raam.protocol("WM_DELETE_WINDOW", Sule)
+
+if väljund_kaust:
+    kausta_nimi = os.path.basename(väljund_kaust)
+    väljund_kast.configure(text=f"Salvestan kausta: {kausta_nimi}", text_color="yellow")
+else:
+    väljund_kast.configure(text="Kasutan vaikekausta (OUT)", text_color="white")
+
 
 raam.mainloop()
