@@ -210,6 +210,13 @@ def näita_versiooni():
     aken.resizable(False, False)
     ctk.CTkLabel(aken, text=f"ET-DLP v{VERSIOON} \n yt-dlp v{YT_DLP_VER}").pack(expand=True)
 
+def ava_juhend():
+    faili_nimi = "juhend.txt"
+    if os.path.exists(faili_nimi):
+        os.startfile(faili_nimi)
+    else:
+        väljund_kast.configure(text="Viga: Juhendi faili ei leitud!", text_color="red")
+
 def salvesta_seaded():
     seaded = {
         "valjund_kaust": väljund_kaust
@@ -232,6 +239,7 @@ def kasuta_vaikekausta():
     väljund_kaust = None
     salvesta_seaded()
     väljund_kast.configure(text="Kasutan vaikekausta (OUT)", text_color="yellow")
+
 
 
 raam = ctk.CTk()
@@ -261,7 +269,9 @@ valikud_fail.add_separator()
 valikud_fail.add_option(option="Välju", command=Sule)
 
 valikud_abi = CustomDropdownMenu(widget=abi_menüü, corner_radius=0, border_width=2)
+valikud_abi.add_option(option="Juhend", command=ava_juhend)
 valikud_abi.add_option(option="Versioon", command=näita_versiooni)
+
 
 
 sisu_raam.columnconfigure((0,1), weight=1, uniform="col")
