@@ -12,7 +12,7 @@ logi_aktiivne = True
 playlist_aktiivne = False
 madalam_aktiivne = False
 
-VERSIOON = "3.0.1"
+VERSIOON = "3.1.0"
 YT_DLP_VER = "2026.3.17.0"
 valik = "mp4"
 
@@ -170,6 +170,7 @@ def vali_formaat(v):
     global valik
     valik = v
     formaat_valik.set(v)
+    salvesta_seaded()
 
 def logimine():
     global logi_aktiivne
@@ -219,7 +220,8 @@ def ava_juhend():
 
 def salvesta_seaded():
     seaded = {
-        "valjund_kaust": väljund_kaust
+        "valjund_kaust": väljund_kaust,
+        "viimane_formaat": valik
     }
     with open("seadistused.json", "w") as f:
         json.dump(seaded, f)
@@ -231,6 +233,7 @@ def laadi_seaded():
             with open("seadistused.json", "r") as f:
                 seaded = json.load(f)
                 väljund_kaust = seaded.get("valjund_kaust")
+                valik = seaded.get("viimane_formaat", "mp4")
         except Exception:
             pass
         
@@ -240,7 +243,26 @@ def kasuta_vaikekausta():
     salvesta_seaded()
     väljund_kast.configure(text="Kasutan vaikekausta (OUT)", text_color="yellow")
 
-
+def puhasta_seaded():
+    global väljund_kaust, valik
+    
+    if os.path.exists("seadistused.json"):
+        os.remove("seadistused.json")
+    
+    väljund_kaust = None
+    valik = "mp4"
+    
+    väljund_kast.configure(text="Seadistused tühjendatud. Kasutan vaikekausta (OUT)", text_color="yellow")
+    formaat_valik.set("mp4")
+    
+    print("Seaded on puhastatud!")
+    
+def puhasta_logi():
+    global väljund_kaust, valik
+    
+    if os.path.exists("laetud.txt"):
+        os.remove("laetud.txt")
+    väljund_kast.configure(text="Logi tühjendatud", text_color="yellow")
 
 raam = ctk.CTk()
 
@@ -266,6 +288,8 @@ valikud_fail = CustomDropdownMenu(widget=faili_menüü, corner_radius=0, border_
 valikud_fail.add_option(option="Vali väljundkaust", command=vali_kaust)
 valikud_fail.add_option(option="Kasuta vaikekausta (OUT)", command=kasuta_vaikekausta)
 valikud_fail.add_separator()
+valikud_fail.add_option(option="Tühjenda seadistused", command=puhasta_seaded)
+valikud_fail.add_option(option="Tühjenda logi", command=puhasta_logi)
 valikud_fail.add_option(option="Välju", command=Sule)
 
 valikud_abi = CustomDropdownMenu(widget=abi_menüü, corner_radius=0, border_width=2)
