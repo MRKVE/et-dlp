@@ -11,12 +11,13 @@ if deno_path:
 logi_aktiivne = True
 playlist_aktiivne = False
 madalam_aktiivne = False
+kaustade_seaded = {"mp3": None, "mp4": None, "mkv": None}
 
-VERSIOON = "3.1.0"
+VERSIOON = "3.1.5 - 07.04.2026"
 YT_DLP_VER = "2026.3.17.0"
 valik = "mp4"
 
-väljund_kaust = None
+väljund_kaust = kaustade_seaded.get(valik)
 logi_aken = None
 logi_tekstikast = None
 
@@ -156,37 +157,70 @@ def popup(event):
     finally:
         menu.grab_release()
 
-def paste():
-    clipboard = raam.clipboard_get()
-    sisend_kast.insert('end',clipboard)
+def paste(event=None):
+    sisend_kast.focus_set()
+    try:
+        lõikelaud = raam.clipboard_get()
+        try:
+            sisend_kast.delete("sel.first", "sel.last")
+            sisend_kast.insert("insert", lõikelaud)
+        except tk.TclError:
+            sisend_kast.delete(0, "end")
+            sisend_kast.insert("insert", lõikelaud)
+        return "break"
+    except tk.TclError:
+        pass
 
-def copy():
-    inp = sisend_kast.get()
-    raam.clipboard_clear()
-    raam.clipboard_append(inp)
-    
+def copy(event=None):
+    try:
+        try:
+            algus = sisend_kast.index("sel.first")
+            lõpp = sisend_kast.index("sel.last")
+            tekst = sisend_kast.get()
+            valitud_tekst = tekst[algus:lõpp]
+        except tk.TclError:
+            valitud_tekst = sisend_kast.get()
+        raam.clipboard_clear()
+        raam.clipboard_append(valitud_tekst)
+    except tk.TclError:
+        pass
 
 def vali_formaat(v):
-    global valik
+    global valik, väljund_kaust
     valik = v
-    formaat_valik.set(v)
+    väljund_kaust = kaustade_seaded.get(v)
+    if väljund_kaust:
+        kausta_nimi = os.path.basename(väljund_kaust)
+        väljund_kast.configure(text=f"Salvestan ({v}): {kausta_nimi}", text_color="yellow")
+    else:
+        väljund_kast.configure(text=f"Kasutan ({v}) jaoks vaikekausta OUT", text_color="white")
     salvesta_seaded()
 
 def logimine():
     global logi_aktiivne
     logi_aktiivne = not logi_aktiivne
-    logi_nupp.configure(fg_color=("green" if logi_aktiivne else ctk.ThemeManager.theme["CTkButton"]["fg_color"]))
-
+    if logi_aktiivne:
+        logi_nupp.configure(fg_color="green", hover_color="#006400")
+    else:
+        logi_nupp.configure(
+            fg_color=ctk.ThemeManager.theme["CTkButton"]["fg_color"], hover_color=ctk.ThemeManager.theme["CTkButton"]["hover_color"])
+    
 def playlist():
     global playlist_aktiivne
     playlist_aktiivne = not playlist_aktiivne
-    playlist_nupp.configure(fg_color=("green" if playlist_aktiivne else ctk.ThemeManager.theme["CTkButton"]["fg_color"]))
-
+    if playlist_aktiivne:
+        playlist_nupp.configure(fg_color="green", hover_color="#006400")
+    else:
+        playlist_nupp.configure(
+            fg_color=ctk.ThemeManager.theme["CTkButton"]["fg_color"], hover_color=ctk.ThemeManager.theme["CTkButton"]["hover_color"])
 def madalam():
     global madalam_aktiivne
     madalam_aktiivne = not madalam_aktiivne
-    madalam_nupp.configure(fg_color=("green" if madalam_aktiivne else ctk.ThemeManager.theme["CTkButton"]["fg_color"]))
-
+    if madalam_aktiivne:
+        madalam_nupp.configure(fg_color="green", hover_color="#006400")
+    else:
+        madalam_nupp.configure(fg_color=ctk.ThemeManager.theme["CTkButton"]["fg_color"], hover_color=ctk.ThemeManager.theme["CTkButton"]["hover_color"])
+        
 def progress_hook(d):
     if d['status'] == 'downloading':
         index = d.get('playlist_index')
@@ -199,9 +233,11 @@ def vali_kaust():
     kaust = filedialog.askdirectory()
     if kaust:
         väljund_kaust = kaust
+        kaustade_seaded[valik] = kaust
         salvesta_seaded()
+        
         kausta_nimi = os.path.basename(kaust)
-        väljund_kast.configure(text=f"Salvestan kausta: {kausta_nimi}", text_color="yellow")
+        väljund_kast.configure(text=f"Salvestan ({valik}): {kausta_nimi}", text_color="yellow")
         
 
 def näita_versiooni():
@@ -220,28 +256,30 @@ def ava_juhend():
 
 def salvesta_seaded():
     seaded = {
-        "valjund_kaust": väljund_kaust,
+        "kaustad": kaustade_seaded,
         "viimane_formaat": valik
     }
     with open("seadistused.json", "w") as f:
         json.dump(seaded, f)
 
 def laadi_seaded():
-    global väljund_kaust, valik
+    global väljund_kaust, valik, kaustade_seaded
     if os.path.exists("seadistused.json"):
         try:
             with open("seadistused.json", "r") as f:
                 seaded = json.load(f)
-                väljund_kaust = seaded.get("valjund_kaust")
+                kaustade_seaded = seaded.get("kaustad", {"mp3": None, "mp4": None, "mkv": None})
                 valik = seaded.get("viimane_formaat", "mp4")
+                väljund_kaust = kaustade_seaded.get(valik)
         except Exception:
             pass
         
 def kasuta_vaikekausta():
     global väljund_kaust
+    kaustade_seaded[valik] = None
     väljund_kaust = None
     salvesta_seaded()
-    väljund_kast.configure(text="Kasutan vaikekausta (OUT)", text_color="yellow")
+    väljund_kast.configure(text=f"({valik}) kasutab nüüd vaikekausta", text_color="white")
 
 def puhasta_seaded():
     global väljund_kaust, valik
@@ -266,7 +304,7 @@ def puhasta_logi():
 
 raam = ctk.CTk()
 
-raam.geometry("450x400")
+raam.geometry("400x400")
 raam.title("ET-DLP")
 
 menüüriba = CTkMenuBar(raam, bg_color="#343638")
@@ -283,9 +321,9 @@ menu.configure(bg="#2b2b2b", fg="white", activebackground="#3b3b3b", activeforeg
 
 faili_menüü = menüüriba.add_cascade("Fail")
 abi_menüü = menüüriba.add_cascade("Abi")
+väljund_nupp = menüüriba.add_cascade("Vali Kaust", command=vali_kaust)
 
 valikud_fail = CustomDropdownMenu(widget=faili_menüü, corner_radius=0, border_width=2)
-valikud_fail.add_option(option="Vali väljundkaust", command=vali_kaust)
 valikud_fail.add_option(option="Kasuta vaikekausta (OUT)", command=kasuta_vaikekausta)
 valikud_fail.add_separator()
 valikud_fail.add_option(option="Tühjenda seadistused", command=puhasta_seaded)
@@ -310,11 +348,11 @@ väljund_kast = ctk.CTkLabel(sisu_raam, text="...", fg_color="#343638", text_col
 väljund_kast.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5)
 
 playlist_nupp = ctk.CTkButton(sisu_raam, text='Playlist', command=playlist)
-playlist_nupp.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
+playlist_nupp.grid(row=2, column=0, padx=5, pady=5, sticky="e")
 
 logi_nupp = ctk.CTkButton(sisu_raam, text='Logija', command=logimine)
-logi_nupp.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
-logi_nupp.configure(fg_color="green")
+logi_nupp.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+logi_nupp.configure(fg_color="green", hover_color="#006400")
 
 laadi_seaded()
 
@@ -323,24 +361,26 @@ formaat_valik.set(valik)
 formaat_valik.grid(row=3, column=0, columnspan=2, padx=5, pady=5)
 
 sule_nupp = ctk.CTkButton(sisu_raam, text='Sulge', command=Sule)
-sule_nupp.grid(row=5, column=0, padx=5, pady=10, sticky="ew")
+sule_nupp.grid(row=5, column=0, padx=5, pady=10, sticky="e")
+
+alusta_nupp = ctk.CTkButton(sisu_raam, text='Alusta', command=alusta)
+alusta_nupp.grid(row=5, column=1, padx=5, pady=10, sticky="w")
 
 madalam_nupp = ctk.CTkButton(sisu_raam, text='Madalam video kvaliteet (mp4)', command=madalam)
 madalam_nupp.grid(row=4, column=0, columnspan=2, padx=5, pady=5)
-
-alusta_nupp = ctk.CTkButton(sisu_raam, text='Alusta', command=alusta)
-alusta_nupp.grid(row=5, column=1, padx=5, pady=10, sticky="ew")
 
 progress = ctk.CTkProgressBar(sisu_raam, mode="indeterminate")
 progress.grid(row=6, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
 
 raam.protocol("WM_DELETE_WINDOW", Sule)
+sisend_kast.bind('<Control-v>', paste)
+sisend_kast.bind('<Control-c>', lambda e: copy())
 
 if väljund_kaust:
     kausta_nimi = os.path.basename(väljund_kaust)
-    väljund_kast.configure(text=f"Salvestan kausta: {kausta_nimi}", text_color="yellow")
+    väljund_kast.configure(text=f"Salvestan ({valik}): {kausta_nimi}", text_color="yellow")
 else:
-    väljund_kast.configure(text="Kasutan vaikekausta (OUT)", text_color="white")
+    väljund_kast.configure(text=f"Kasutan ({valik}) jaoks vaikekausta OUT", text_color="white")
 
 
 raam.mainloop()
