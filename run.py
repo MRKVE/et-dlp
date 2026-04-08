@@ -4,6 +4,43 @@ import customtkinter as ctk
 import os, yt_dlp, winsound, threading, sys, json, shutil
 from CTkMenuBar import CTkMenuBar, CustomDropdownMenu
 
+logi_aken = None
+logi_tekstikast = None
+
+class TextboxLogger:
+    def debug(self, msg):
+        if logi_tekstikast and logi_tekstikast.winfo_exists():
+            logi_tekstikast.after(0, self.lisa_tekst, msg)
+        print(msg)
+
+    def warning(self, msg):
+        if logi_tekstikast and logi_tekstikast.winfo_exists():
+            logi_tekstikast.after(0, self.lisa_tekst, f"HOIATUS: {msg}")
+
+    def error(self, msg):
+        if logi_tekstikast and logi_tekstikast.winfo_exists():
+            logi_tekstikast.after(0, self.lisa_tekst, f"VIGA: {msg}")
+
+    def lisa_tekst(self, msg):
+        logi_tekstikast.configure(state="normal")
+        logi_tekstikast.insert("end", msg + "\n")
+        logi_tekstikast.see("end")
+        logi_tekstikast.configure(state="disabled")
+
+def ava_logi_aken():
+    global logi_aken, logi_tekstikast
+    if logi_aken is None or not logi_aken.winfo_exists():
+        logi_aken = ctk.CTkToplevel(raam)
+        logi_aken.title("ET-DLP Konsool")
+        logi_aken.geometry("600x400")
+        logi_aken.attributes("-topmost", True) 
+        
+        logi_tekstikast = ctk.CTkTextbox(logi_aken, width=580, height=380, font=("Consolas", 12))
+        logi_tekstikast.pack(padx=10, pady=10, fill="both", expand=True)
+        logi_tekstikast.configure(state="disabled")
+    else:
+        logi_aken.focus()
+
 deno_path = shutil.which("deno")
 if deno_path:
     os.environ['PATH'] = os.path.dirname(deno_path) + os.pathsep + os.environ.get('PATH', '')
@@ -13,7 +50,7 @@ playlist_aktiivne = False
 madalam_aktiivne = False
 kaustade_seaded = {"mp3": None, "mp4": None, "mkv": None}
 
-VERSIOON = "3.1.5 - 07.04.2026"
+VERSIOON = "3.2.0 - 08.04.2026"
 YT_DLP_VER = "2026.3.17.0"
 valik = "mp4"
 
@@ -53,7 +90,7 @@ def alusta_töö():
     ffmpeg_dir = get_path(os.path.join("bin", "ffmpeg", "bin"))
     base_out_path = väljund_kaust if väljund_kaust else os.path.join(os.getcwd(), "OUT")
     out_path = os.path.join(base_out_path, "%(title)s.%(ext)s")
-    ydl_seaded= {'outtmpl': out_path,'ffmpeg_location': ffmpeg_dir, 'noplaylist': True, 'quiet': False, }
+    ydl_seaded= {'outtmpl': out_path,'ffmpeg_location': ffmpeg_dir, 'noplaylist': True, 'quiet': False, 'logger': TextboxLogger(),}
     ydl_seaded.update({'remote_components': ['ejs:github']})
     
     '''deno_path = get_path(os.path.join("bin", "deno.exe"))
@@ -333,8 +370,7 @@ valikud_fail.add_option(option="Välju", command=Sule)
 valikud_abi = CustomDropdownMenu(widget=abi_menüü, corner_radius=0, border_width=2)
 valikud_abi.add_option(option="Juhend", command=ava_juhend)
 valikud_abi.add_option(option="Versioon", command=näita_versiooni)
-
-
+valikud_abi.add_option(option="Konsool", command=ava_logi_aken)
 
 sisu_raam.columnconfigure((0,1), weight=1, uniform="col")
 raam.iconbitmap(get_path("icon.ico"))
