@@ -6,6 +6,9 @@ from CTkMenuBar import CTkMenuBar, CustomDropdownMenu
 
 logi_aken = None
 logi_tekstikast = None
+püsivad_seaded = True
+seadete_aken = None
+seaded_avatud = False
 
 class TextboxLogger:
     def debug(self, msg):
@@ -50,7 +53,7 @@ playlist_aktiivne = False
 madalam_aktiivne = False
 kaustade_seaded = {"mp3": None, "mp4": None, "mkv": None}
 
-VERSIOON = "3.2.0 - 08.04.2026"
+VERSIOON = "3.2.2 - 08.04.2026"
 YT_DLP_VER = "2026.3.17.0"
 valik = "mp4"
 
@@ -129,6 +132,25 @@ def alusta_töö():
         ],
         'writethumbnail': True,
     })
+    
+    elif valik == 'opus':
+        print("opus")
+        ydl_seaded.update({
+            'format': 'bestaudio/best',
+            'postprocessors': [
+                {
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'opus',
+                    'preferredquality': '256',
+                },
+                {
+                    'key': 'FFmpegMetadata',
+                    'add_metadata': True,
+                },
+            ],
+        })
+    
+    
     elif valik == 'mp4':
         print("mp4")
         
@@ -195,7 +217,6 @@ def popup(event):
         menu.grab_release()
 
 def paste(event=None):
-    sisend_kast.focus_set()
     try:
         lõikelaud = raam.clipboard_get()
         try:
@@ -206,7 +227,7 @@ def paste(event=None):
             sisend_kast.insert("insert", lõikelaud)
         return "break"
     except tk.TclError:
-        pass
+        return
 
 def copy(event=None):
     try:
@@ -233,14 +254,29 @@ def vali_formaat(v):
         väljund_kast.configure(text=f"Kasutan ({v}) jaoks vaikekausta OUT", text_color="white")
     salvesta_seaded()
 
+def värskenda_logi_nupp():
+    if logi_aktiivne:
+        logi_nupp.configure(fg_color="green", hover_color="#006400", text="Logija")
+    else:
+        logi_nupp.configure(
+            fg_color=ctk.ThemeManager.theme["CTkButton"]["fg_color"], 
+            hover_color=ctk.ThemeManager.theme["CTkButton"]["hover_color"],
+            text="Logija")
+
+
 def logimine():
     global logi_aktiivne
     logi_aktiivne = not logi_aktiivne
-    if logi_aktiivne:
-        logi_nupp.configure(fg_color="green", hover_color="#006400")
-    else:
-        logi_nupp.configure(
-            fg_color=ctk.ThemeManager.theme["CTkButton"]["fg_color"], hover_color=ctk.ThemeManager.theme["CTkButton"]["hover_color"])
+    värskenda_logi_nupp()
+    
+    try:
+        if logi_aktiivne: 
+            logi_lüliti.select()
+        else: 
+            logi_lüliti.deselect()
+    except: 
+        pass
+    salvesta_seaded()
     
 def playlist():
     global playlist_aktiivne
@@ -282,6 +318,20 @@ def näita_versiooni():
     aken.title("Versioon")
     aken.geometry("250x100")
     aken.resizable(False, False)
+    
+    aken.update_idletasks()
+    main_x = raam.winfo_x()
+    main_y = raam.winfo_y()
+    main_width = raam.winfo_width()
+    main_height = raam.winfo_height()
+    
+    window_width = 250
+    window_height = 100
+    
+    x = main_x + (main_width - window_width) // 2
+    y = main_y + (main_height - window_height) // 2
+    
+    aken.geometry(f"{window_width}x{window_height}+{x}+{y}")
     ctk.CTkLabel(aken, text=f"ET-DLP v{VERSIOON} \n yt-dlp v{YT_DLP_VER}").pack(expand=True)
 
 def ava_juhend():
@@ -293,14 +343,16 @@ def ava_juhend():
 
 def salvesta_seaded():
     seaded = {
-        "kaustad": kaustade_seaded,
-        "viimane_formaat": valik
+        "kaustad": kaustade_seaded if püsivad_seaded else {"mp3": None, "mp4": None, "mkv": None, "opus": None},
+        "viimane_formaat": valik if püsivad_seaded else "mp4",
+        "ps_aktiivne": püsivad_seaded,
+        "logi_aktiivne": logi_aktiivne
     }
     with open("seadistused.json", "w") as f:
         json.dump(seaded, f)
 
 def laadi_seaded():
-    global väljund_kaust, valik, kaustade_seaded
+    global väljund_kaust, valik, kaustade_seaded, parandatud_copy_paste, püsivad_seaded, logi_aktiivne
     if os.path.exists("seadistused.json"):
         try:
             with open("seadistused.json", "r") as f:
@@ -308,6 +360,9 @@ def laadi_seaded():
                 kaustade_seaded = seaded.get("kaustad", {"mp3": None, "mp4": None, "mkv": None})
                 valik = seaded.get("viimane_formaat", "mp4")
                 väljund_kaust = kaustade_seaded.get(valik)
+                püsivad_seaded = seaded.get("ps_aktiivne", True)
+                logi_aktiivne = seaded.get("logi_aktiivne", True)
+                raam.after(100, värskenda_logi_nupp)
         except Exception:
             pass
         
@@ -339,15 +394,60 @@ def puhasta_logi():
         os.remove("laetud.txt")
     väljund_kast.configure(text="Logi tühjendatud", text_color="yellow")
 
-raam = ctk.CTk()
+def muuda_ps_olekut():
+    global püsivad_seaded
+    püsivad_seaded = bool(ps_lüliti.get())
+    salvesta_seaded()
+    
+def ava_seaded():
+    global seaded_avatud
+    if not seaded_avatud:
+        sisu_raam.pack_forget() 
+        seadete_raam.pack(fill="both", expand=True)
+        seaded_avatud = True
+    else:
+        seadete_raam.pack_forget()
+        sisu_raam.pack(fill="both", expand=True)
+        seaded_avatud = False
 
+raam = ctk.CTk()
+laadi_seaded()
 raam.geometry("400x400")
 raam.title("ET-DLP")
 
 menüüriba = CTkMenuBar(raam, bg_color="#343638")
+seadete_raam = ctk.CTkFrame(raam, corner_radius=0, fg_color="#2b2b2b")
 
+"/Settings"
 sisu_raam = ctk.CTkFrame(raam)
 sisu_raam.pack(fill="both", expand=True)
+
+ctk.CTkLabel(seadete_raam, text="KÄITUMINE", font=("", 12, "bold"), text_color="gray").pack(pady=(10, 5))
+
+def muuda_logi_olekut():
+    global logi_aktiivne
+    logi_aktiivne = bool(logi_lüliti.get())
+    värskenda_logi_nupp()
+    salvesta_seaded()
+    
+logi_lüliti = ctk.CTkSwitch(seadete_raam, text="Kasuta allalaadimiste ajalugu", command=muuda_logi_olekut)
+if logi_aktiivne: logi_lüliti.select()
+else: logi_lüliti.deselect()
+logi_lüliti.pack(padx=20, pady=5, anchor="w")
+
+ps_lüliti = ctk.CTkSwitch(seadete_raam, text="Mäleta kaustu ja eelmist failitüüpi", command=muuda_ps_olekut)
+if püsivad_seaded: ps_lüliti.select()
+else: ps_lüliti.deselect()
+
+ps_lüliti.pack(padx=20, pady=10, anchor="w")
+
+
+ctk.CTkLabel(seadete_raam, text="HALDUS", font=("", 12, "bold"), text_color="gray").pack(pady=(20, 5))
+ctk.CTkButton(seadete_raam, text="Kasuta vaikekausta (OUT)", command=kasuta_vaikekausta).pack(padx=20, pady=5, fill="x")
+ctk.CTkButton(seadete_raam, text="Tühjenda seadistused", command=puhasta_seaded).pack(padx=20, pady=5, fill="x")
+ctk.CTkButton(seadete_raam, text="Tühjenda logi", command=puhasta_logi).pack(padx=20, pady=5, fill="x")
+
+ctk.CTkButton(seadete_raam, text="⬅Tagasi", command=ava_seaded).pack(side="bottom", pady=20)
 
 sisu_raam.rowconfigure((0,1,2,3,4,5,6,7), weight=1)
 
@@ -356,16 +456,15 @@ menu.add_command(label='Copy',command=copy)
 menu.add_command(label='Paste',command=paste)
 menu.configure(bg="#2b2b2b", fg="white", activebackground="#3b3b3b", activeforeground="white")
 
-faili_menüü = menüüriba.add_cascade("Fail")
-abi_menüü = menüüriba.add_cascade("Abi")
-väljund_nupp = menüüriba.add_cascade("Vali Kaust", command=vali_kaust)
+faili_menüü = menüüriba.add_cascade("☰ Fail")
+abi_menüü = menüüriba.add_cascade("ⓘ Abi")
+väljund_nupp = menüüriba.add_cascade("⮞ Vali Kaust", command=vali_kaust)
 
 valikud_fail = CustomDropdownMenu(widget=faili_menüü, corner_radius=0, border_width=2)
-valikud_fail.add_option(option="Kasuta vaikekausta (OUT)", command=kasuta_vaikekausta)
+valikud_fail.add_option(option="⚙ Seaded", command=ava_seaded)
 valikud_fail.add_separator()
-valikud_fail.add_option(option="Tühjenda seadistused", command=puhasta_seaded)
-valikud_fail.add_option(option="Tühjenda logi", command=puhasta_logi)
 valikud_fail.add_option(option="Välju", command=Sule)
+
 
 valikud_abi = CustomDropdownMenu(widget=abi_menüü, corner_radius=0, border_width=2)
 valikud_abi.add_option(option="Juhend", command=ava_juhend)
@@ -390,16 +489,14 @@ logi_nupp = ctk.CTkButton(sisu_raam, text='Logija', command=logimine)
 logi_nupp.grid(row=2, column=1, padx=5, pady=5, sticky="w")
 logi_nupp.configure(fg_color="green", hover_color="#006400")
 
-laadi_seaded()
-
-formaat_valik = ctk.CTkSegmentedButton(sisu_raam, values=["mp3", "mp4", "mkv"], command=vali_formaat)
+formaat_valik = ctk.CTkSegmentedButton(sisu_raam, values=["mp3", "mp4", "mkv", "opus"], command=vali_formaat)
 formaat_valik.set(valik)
 formaat_valik.grid(row=3, column=0, columnspan=2, padx=5, pady=5)
 
-sule_nupp = ctk.CTkButton(sisu_raam, text='Sulge', command=Sule)
+sule_nupp = ctk.CTkButton(sisu_raam, text='✕ Sulge', command=Sule)
 sule_nupp.grid(row=5, column=0, padx=5, pady=10, sticky="e")
 
-alusta_nupp = ctk.CTkButton(sisu_raam, text='Alusta', command=alusta)
+alusta_nupp = ctk.CTkButton(sisu_raam, text='⏵ Alusta', command=alusta)
 alusta_nupp.grid(row=5, column=1, padx=5, pady=10, sticky="w")
 
 madalam_nupp = ctk.CTkButton(sisu_raam, text='Madalam video kvaliteet (mp4)', command=madalam)
